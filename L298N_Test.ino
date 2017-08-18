@@ -13,8 +13,8 @@ int in4 = 6;
 int ir_b = 2;
 int ir_a = 3;
 
-unsigned int counterA=0;
-unsigned int counterB=0;
+float counterA=0;
+float counterB=0;
 
 void docountA()  // counts from the speed sensor
 {
@@ -33,15 +33,15 @@ void timerIsr()
   Serial.print("MotorA Count : ");
   Serial.print(counterA);
   Serial.print(" Motor Speed: "); 
-  int rotationA = (counterA / 20);  // divide by number of holes in Disc
-  Serial.print(rotationA,DEC);  
+  float rotationA = (counterA / 20);  // divide by number of holes in Disc
+  Serial.print(rotationA);  
   Serial.println(" Rotation per seconds"); 
 
   Serial.print("MotorB Count : ");
   Serial.print(counterB);
   Serial.print(" Motor Speed: "); 
-  int rotationB = (counterB / 20);  // divide by number of holes in Disc
-  Serial.print(rotationB,DEC);  
+  float rotationB = (counterB / 20);  // divide by number of holes in Disc
+  Serial.print(rotationB);  
   Serial.println(" Rotation per seconds"); 
 
   
