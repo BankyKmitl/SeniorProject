@@ -1,43 +1,22 @@
 #include <TimerOne.h>
+#include <PID_v1.h>
+#include <Plotter.h>
 
-//set the desired speed here
 unsigned int desired_speed=10; 
-unsigned int desired_speed2=10;
-
-//variables for the PID controller
+unsigned int desired_speed2=1;
 unsigned int measured_speed=0; 
 unsigned int measured_speed2=0;
 unsigned int total_pulses=0; 
 unsigned int total_pulses2=0;
 
-unsigned int set_power=0;
-unsigned int set_power2=0;
-unsigned int maximum_power=255;
-unsigned int maximum_power2=255;
-unsigned int minimum_power=20;
-unsigned int minimum_power2=20;
+//Plotter 
 
-//tune these PID coefficients
-float Kp=2;
-float Ki=0;
-float Kd=0;
+//Define Variables we'll be connecting to
+double Setpoint, Input_a, Output_a, Input_b, Output_b;
 
-//float Kp2=16;
-//float Ki2=0.125;
-//float Kd2=0.125;
-float Kp2=5;
-float Ki2=0;
-float Kd2=0;
-
-int error=0;
-int prev_error=0;
-int integral=0;
-int diff=0;
-
-int error2=0;
-int prev_error2=0;
-int integral2=0;
-int diff2=0;
+//Specify the links and initial tuning parameters
+PID pid_a(&Input_a, &Output_a, &Setpoint,30,2,1, DIRECT);
+PID pid_b(&Input_b, &Output_b, &Setpoint,30,3,1, DIRECT);
 
 // connect motor controller pins to Arduino digital pins
 // motor one
@@ -55,45 +34,39 @@ int ir_a = 3;
 void docount()  // counts from the speed sensor
 {
   measured_speed++;  // increase +1 the measured_speed value
-  total_pulses += measured_speed;
+  total_pulses++;
 } 
 void docount2()  // counts from the speed sensor
 {
   measured_speed2++;  // increase +1 the measured_speed value
-  total_pulses2 += measured_speed2;
-}  
+  total_pulses2++;
+}
+
 void timerIsr()
 {
   Timer1.detachInterrupt();  //stop the timer
+
+  Input_a = measured_speed*10.0/20.0;
+  Input_b = measured_speed2*10.0/20.0;
   
-  error = measured_speed - desired_speed;
-  integral += (error + prev_error)* Ki;
-  diff = (error - prev_error)* Kd;
-
-  if (set_power < maximum_power) {set_power -= ((error * Kp) + integral + diff);
-  }
-  else {set_power =minimum_power; integral =0;};
-
-  error2 = measured_speed2 - desired_speed2;
-  integral2 += (error2 + prev_error2)* Ki;
-  diff2 = (error2 - prev_error2)* Kd;
-
-  if (set_power2 < maximum_power2) set_power2 -= ((error2 * Kp) + integral2 + diff);
-  else {set_power2 = minimum_power2; integral2 = 0;};
-
-  prev_error = error;
-  prev_error2 = error2;
-
-  Serial.print("MotorA speed : ");
-  Serial.println(measured_speed);  
-
-  Serial.print("MotorB speed : ");
-  Serial.println(measured_speed2);
+  Setpoint = 10;
+  pid_a.Compute();
+  pid_b.Compute();
   
-  Serial.println("------------------------------------------"); 
+  Serial.print("A : ");
+  Serial.println(Input_a); 
+  Serial.print("B : ");
+  Serial.println(Input_b); 
 
-  measured_speed=0;  //  reset measured_speed to zero
-  measured_speed2=0;
+   if (total_pulses >= 10000 || total_pulses2 >= 10000){  //
+      demoStop();
+   }
+  
+  analogWrite(enA, Output_a);
+  analogWrite(enB, Output_b);
+  
+  measured_speed = 0; 
+  measured_speed2 = 0;
   Timer1.attachInterrupt( timerIsr );  //enable the timer
 }
 
@@ -110,7 +83,22 @@ void setup() {
   pinMode(ir_b, INPUT);
   
   Serial.begin(9600);
-  enable_interrupt();  
+  enable_interrupt();
+  // turn on motor A
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, HIGH);  
+// turn on motor B: faulty, cannot reverse
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, HIGH); 
+  
+
+  pid_a.SetOutputLimits(60, 255);
+  pid_a.SetSampleTime(100);
+  pid_a.SetMode(AUTOMATIC);
+
+  pid_b.SetOutputLimits(60, 255);
+  pid_b.SetSampleTime(100);
+  pid_b.SetMode(AUTOMATIC);
 }
 void enable_interrupt()
 {
@@ -133,22 +121,12 @@ void demoStraightPID()
 // this function will run the motors in a straight line at a fixed speed
 
 //set the desired speed here
-  desired_speed=20; 
-  desired_speed2=10;
+  
 
+
+  //Serial.println(Output);
+  //analogWrite(enB, lpower2);
   
-  unsigned int lpower = (set_power);
-  unsigned int lpower2 = (set_power2);  
-  
-  analogWrite(enA, 200);
-  analogWrite(enB, 200);
-  
-// turn on motor A
-  digitalWrite(in1, LOW);
-  digitalWrite(in2, HIGH);  
-// turn on motor B: faulty, cannot reverse
-  digitalWrite(in3, HIGH);
-  digitalWrite(in4, LOW); 
 }
 
 void demoStop()
@@ -161,10 +139,14 @@ void demoStop()
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  //disable_interrupt();
-  //demoOne();
-//  demoTwo();
-  demoStraightPID();
+
+//  Input = measured_speed*10.0/20.0;
+//  Setpoint = 15;
+//  myPID.Compute();
+
+//  Serial.println(Input);
+//  Serial.println(Setpoint);
+//  Serial.println(Output);
+//  analogWrite(enA, Output);
  // delay(5000);
 }

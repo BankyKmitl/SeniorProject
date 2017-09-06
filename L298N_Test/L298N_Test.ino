@@ -19,19 +19,11 @@ float counterB=0;
 void docountA()  // counts from the speed sensor
 {
   counterA++;// increase +1 the counter value
-  if (counterA == 22){
-    analogWrite(enA, 0);
-    delay(1000);
-  }
 } 
 
 void docountB()
 {
   counterB++;
-  if (counterB == 22){
-    analogWrite(enB, 0);
-    delay(1000);
-  }
 }
 void timerIsr()
 {
@@ -83,11 +75,11 @@ void forward(int delay_sec){
   //turn on motor A
   digitalWrite(in1, LOW);
   digitalWrite(in2, HIGH);
-  analogWrite(enA, 85);
+  analogWrite(enA, 200);
   // turn on motor B
   digitalWrite(in3, LOW);
   digitalWrite(in4, HIGH);
-  analogWrite(enB, 80);
+  analogWrite(enB, 200);
   delay(delay_sec);
 }
 
