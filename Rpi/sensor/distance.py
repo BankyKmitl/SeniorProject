@@ -8,9 +8,10 @@ class DistanceSensor:
     self.TRIG = TRIG
     self.ECHO = ECHO
     self.distance = 0
+    self.max_distance = 400
         
  ##setup GPIO   
-  def setDistance(self):
+  def setupGPIO(self):
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(self.TRIG,GPIO.OUT)
     GPIO.setup(self.ECHO,GPIO.IN)
@@ -35,16 +36,20 @@ class DistanceSensor:
       pulse_duration = pulse_end - pulse_start
       distance = pulse_duration * 17150
       distance = round(distance, 2)
-      self.distance = distance
+      
+      self.distance = min(distance,self.max_distance)
+      
 ##      print "Distance: ",distance," cm"
       
+  def get_distance(self):
+      return int(self.distance)
+
+  def check_distance(self,ultra_distance,set_distance):
+      if (int(ultra_distance) in [set_distance-1,set_distance,set_distance+1]):
+        return True
+      else:
+        return False
       
-  def get_Distance(self):
-      return int(self.distance) 
-    
-
-
-  
  ##CleanUp   
-  def clenupDistance():
+  def cleanup():
     GPIO.cleanup()
