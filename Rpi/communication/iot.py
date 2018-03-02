@@ -43,6 +43,7 @@ class Iot:
         self.goal_distance = 0
         
     def callback_message(self,topic,message):
+        print "message"
         xy = (message.split(",")[0],message.split(",")[1])
         
         if (self.check_direction(xy) == "right" or self.check_direction(xy) == "left"):

@@ -21,23 +21,23 @@ class Map:
             if (self.data[i][2] == time):
                 return self.data[i]
 
-    def pop_left(self):
+    def popLeft(self):
             self.data.popleft()
             
-    def get_len(self):
+    def getLen(self):
         return len(self.data)
 
     def getFirst(self):
-        if len(self.data) == 0:
-            return ['0','0','0']
-        else:
+        try:
             return self.data[0]
+        except IndexError:
+            pass
     
     def getMap(self):
         return self.data
 
     def getLast(self):
-        last = "*".join(self.data[-1])
+        last = ";".join(self.data[-1])
         return last
     
             

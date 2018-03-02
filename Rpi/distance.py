@@ -1,35 +1,29 @@
 import RPi.GPIO as GPIO
 import time
+from threading import Thread
 
-class DistanceSensor:
+class DistanceSensor(threading.Thread):
   def __init__(self,TRIG,ECHO):
+    threading.Thread.__init__(self)
     self.TRIG = TRIG
     self.ECHO = ECHO
-    
- ##setup GPIO   
-  def setDistance(self):
+    self.distance = 0
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(self.TRIG,GPIO.OUT)
     GPIO.setup(self.ECHO,GPIO.IN)
 
-##to RunUltrasonic
-  def runDistance():
-    GPIO.output(TRIG, True)
-    time.sleep(0.00001)
-    GPIO.output(TRIG, False)
+  def run(self):
+    print "before while"
+    while (True):
+      GPIO.output(self.TRIG, True)
+      time.sleep(0.00001)
+      GPIO.output(self.TRIG, False)
+      while GPIO.input(self.ECHO)==0:
+        pulse_start = time.time()
 
-    while GPIO.input(ECHO)==0:
-      pulse_start = time.time()
+      while GPIO.input(self.ECHO)==1:
+        pulse_end = time.time()
 
-    while GPIO.input(ECHO)==1:
-      pulse_end = time.time()
-
-    pulse_duration = pulse_end - pulse_start
-    distance = pulse_duration * 17150
-    distance = round(distance, 2)
-    print "Distance: ",distance," cm"
-    return distance
-    
- ##CleanUp   
-  def clenupDistance():
-    GPIO.cleanup()
+      pulse_duration = pulse_end - pulse_start
+      self.distance = round(pulse_duration * 17150, 2)
+      time.sleep(1)
