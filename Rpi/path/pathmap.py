@@ -20,9 +20,6 @@ class Map:
         for i in range(len(self.data)):
             if (self.data[i][2] == time):
                 return self.data[i]
-
-    def popLeft(self):
-            self.data.popleft()
             
     def getLen(self):
         return len(self.data)
