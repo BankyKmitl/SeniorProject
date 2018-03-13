@@ -9,7 +9,6 @@ import os
 
 ##################### Beacon Setting #############################
 service = BeaconService("hci0")
-devices = service.scan(5)
 p = subprocess.Popen(["cat","/sys/class/net/eth0/address"], stdout=subprocess.PIPE)
 output, err = p.communicate()
 
@@ -64,7 +63,7 @@ def beacon_scan():
                obj = b
                deviceData.append(b._uuid)
             if obj._rssi > b._rssi:
-               DeviceData[0] = b._uuid
+               deviceData[0] = b._uuid
         if len(deviceData) != 0:
             break;
             

@@ -4,6 +4,9 @@ import time
 import threading
 import serial
 import math
+import subprocess
+from bluetooth.ble import BeaconService
+import os
 from sensor import speed
 from sensor import distance
 from path import pathmap
@@ -175,8 +178,6 @@ def self_draw(direction,distance):
             draw_direction = check_direction_tuple(direction)
             draw_distance = distance
             
-##            print xy,check_direction(xy), draw_direction , draw_distance
-            
             if draw_direction == "fwd":
                 alice.forward(draw_distance)
             elif draw_direction == "bwd":
@@ -197,7 +198,66 @@ def init_self_draw(message):
             alice.backward(draw_distance)
             alice.pendown()
 
+##### Leader Mode robot will advertise untill get join from follower
+##### then close beacon and publish control data to mac topic
+        
+def leader(data,des):
+    com_iot.subscribe(my_mac)
+    
+    beacon_advertise("12345678-1234-1234-1234-"+my_mac,1,1,1,1)
+    
+#### Follower Mode tobot will scan for Beacon data then join to topic leader
+#### and send join to topic and get data from leader
+    
+def follower(data,des):
+    beacon_scan()
+    leader_topic = deviceData[0][24:]
+    com_iot.publish(leader_topic,"join") #### Publish join state  to leader topic
+    com_iot.subscribe(leader_topic)   ####Subscribe Leader
+    beacon_advertise("12345678-1234-1234-1234-"+my_mac,1,1,1,1)
+    com_iot.subscribe(my_mac) #### Subscribe to own topic
+    
+############################# Class #####################################
+            
+class Beacon(object):
+    
+    def __init__(self, data, address):
+        self._uuid = data[0]
+        self._major = data[1]
+        self._minor = data[2]
+        self._power = data[3]
+        self._rssi = data[4]
+        self._address = address
+        
+    def __str__(self):
+        ret = "Beacon: address:{ADDR} uuid:{UUID} major:{MAJOR}"\
+                " minor:{MINOR} txpower:{POWER} rssi:{RSSI}"\
+                .format(ADDR=self._address, UUID=self._uuid, MAJOR=self._major,
+                        MINOR=self._minor, POWER=self._power, RSSI=self._rssi)
+        return ret
 
+def beacon_advertise(uuid, major, minor, tx, interval):
+    service.start_advertising(uuid,major, minor, tx, interval)
+
+def beacon_scan():
+    print "scan start ..."
+    devices = service.scan(5)
+    t1 = time.time()
+    i = 1
+    obj = 0
+    while True:
+        for address, data in list(devices.items()):
+            b = Beacon(data, address)
+            print b._uuid
+            print deviceData
+            if i == 1:
+               obj = b
+               deviceData.append(b._uuid)
+            if obj._rssi > b._rssi:
+               deviceData[0] = b._uuid
+        if len(deviceData) != 0:
+            break;
+        
 class DistanceSensor(threading.Thread):
         def __init__(self,TRIG,ECHO):
             threading.Thread.__init__(self)
@@ -337,8 +397,6 @@ class SpeedSensor:
                 pwm = str(self.pwm_a) + " " + str(self.pwm_b)
                 return pwm
 
-##################################################################################
-
 ################################# IOT Class ###################################
 
 class Iot:
@@ -365,27 +423,61 @@ class Iot:
         print ("Now I am connected with netpie")
 
     def callback_message(self,topic,message):
-        try:
-                master_map.update(message)
-                global temp_xy,previous_message
-                xy = (int(message.split(";")[1][1:2]),int(message.split(";")[1][-2:-1]))  
-                self.mas_total_dis = int(message.split(";")[2])
+        global data
+        print message
+        des = 0
+        if str(message) == "join":   ### Wait Message Join for approve when member join topic 
+                print "Someone join Topic: ", topic
+                ####### to stop Beacon advertise must restart bluetooth adapter
+                os.system("sudo service bluetooth stop" )   
+                os.system("sudo service bluetooth start" )
+                microgear.unsubscribe("/"+my_mac) ####Unsubscribe own topic to avoid complex data from more topic
+         
+        if str(message[:5]) == "Topic":    ######### Swap topic unsub leader topic and sub new leader
+                microgear.unsubscribe("/"+leader_topic) 
+                microgear.subscribe("/"+message[5:])
 
-                if (xy != temp_xy):
+        if str(message) == "Leader":    ######### User Choose Mode Leader 
+                data[0] = 1
+        if str(message) == "Follower":   ######### User Choose Mode Follower
+                data[0] = 0
+        
+        if str(message) == "start":    ######### User Start Platooning
+                print "go go!"
+                if data[0] == 1:
+                        leader(data,des)
+                if data[0] == 0:
+                        follower(data,des)
+        
+        if str(message) == "exit":      ######### Leader exit platoons
+                microgear.publish("/"+my_mac,"Topic:"+leader_topic)
+                microgear.unsubscribe("/"+leader_topic)
                 
-                        bob.dot("blue")
-                        plan_map.update(message)
-##                        print plan_map.getMap()
-                        master_draw([xy,self.mas_total_dis])
-                        self.mas_temp_dis = self.mas_total_dis
-                else:
-                        master_draw([xy,self.mas_total_dis - self.mas_temp_dis])
-                        self.mas_temp_dis = self.mas_total_dis
+        
+        else:     ######### Other input from free board will be destination code
+                if message in data[1]:
+                        des = data[1].index(str(message))
 
-                temp_xy = current_direction
-##                previous_message = message
-        except Queue.Empty:
-                pass
+        print "Now Data is ",data
+        print "Destination",des
+
+        #########################################################
+##        master_map.update(message)
+##        global temp_xy,previous_message
+##        xy = (int(message.split(";")[1][1:2]),int(message.split(";")[1][-2:-1]))  
+##        self.mas_total_dis = int(message.split(";")[2])
+##
+##        if (xy != temp_xy):
+##                bob.dot("blue")
+##                plan_map.update(message)
+##                master_draw([xy,self.mas_total_dis])
+##                self.mas_temp_dis = self.mas_total_dis
+##        else:
+##                master_draw([xy,self.mas_total_dis - self.mas_temp_dis])
+##                self.mas_temp_dis = self.mas_total_dis
+##
+##        temp_xy = current_direction
+        #####################################################
 
     def callback_error(msg):
         print "Error"
@@ -440,7 +532,7 @@ class Actual_Map(threading.Thread):
                             gui_total_distance.config(text = "Total Distance : "+str(s.get_total_avg_hole())+" cm")
                             gui_direction.config(text = "Direction : " + str(current_direction))
 
-                            com_iot.publish(com_iot.alias,self_map.getLast())
+##                            com_iot.publish(com_iot.alias,self_map.getLast())
                             time.sleep(0.2)
                 except Queue.Empty:
                         pass
@@ -483,6 +575,13 @@ class Drive(threading.Thread):
                         
 leader_state = 1
 
+########################### Bluetooth Service########################
+service = BeaconService("hci0")
+p = subprocess.Popen(["cat","/sys/class/net/eth0/address"], stdout=subprocess.PIPE)
+output, err = p.communicate()  
+my_mac = "".join(output.split(":")  )[:12]
+deviceData = []
+data = [0,["Meanburi","Bangkapi","Ladkrabang"]]
 
 ########################### Turtle GUI ############################
 
@@ -565,18 +664,17 @@ GPIO.add_event_detect(s.ir_right, GPIO.RISING, callback=s.b_counter)
 
 previous_message = ""
 #################  IOT setting ################################
-
-com_iot = Iot("O81ngNPLQoe9ppO","BQUAqXZ6wM8eiqQPYLWDnP2G9",'RobotCarPlatoon','car02')
-com_iot.subscribe("con01")
+com_iot = Iot("O81ngNPLQoe9ppO","BQUAqXZ6wM8eiqQPYLWDnP2G9",'RobotCarPlatoon',my_mac)
+com_iot.subscribe("freeboard"+my_mac)
 com_iot.connect(False)
 
 plan_map = pathmap.Map()
 setattr(plan_map,"data",command.get_plan_map())
 
-for data in plan_map.getMap():
+for item in plan_map.getMap():
         bob.color("blue")
         bob.dot("blue")
-        draw_plan_map(data)
+        draw_plan_map(item)
         
 master_map = pathmap.Map()
 self_map = pathmap.Map()
