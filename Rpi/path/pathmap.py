@@ -14,7 +14,7 @@ class Map:
         
     def update(self,message):
         if len(message) != 0:
-            self.data.append(message)
+            self.data.extend(message)
 
     def getData(self,time):
         for i in range(len(self.data)):

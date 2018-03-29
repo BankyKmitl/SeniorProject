@@ -17,6 +17,8 @@ import Queue
 from gpiozero import PWMOutputDevice
 from gpiozero import DigitalOutputDevice
 import command
+from collections import deque
+##from sensor import Gyro
 
 ##############################################################################
 def drive_motor(direction,pwm):
@@ -93,7 +95,12 @@ def check_direction_tuple(xy):
                 return "stop"
         elif (xy == (1,0)):
                 return "fwd"
-
+        elif (xy == (2,0)):
+                return "bwd"
+        elif (xy == (0,1)):
+                return "left"
+        elif (xy == (0,2)):
+                return "right"
 
 def parse_direction(str_direction):
         if (str_direction == "fwd"):
@@ -134,86 +141,93 @@ def draw_plan_map(data):
         draw_distance = int(split_data[2])
 
         if draw_direction == "fwd":
-                bob.forward(draw_distance)
+                leader_turtle.forward(draw_distance)
         elif draw_direction == "bwd":
-                bob.backward(draw_distance)
+                leader_turtle.backward(draw_distance)
         elif draw_direction == "left":
-                bob.left(draw_distance)
+                leader_turtle.left(draw_distance)
         elif draw_direction == "right":
-                bob.right(draw_distance)
+                leader_turtle.right(draw_distance)
         
 def master_draw(message):
-        bob.color("blue")
+        leader_turtle.color("blue")
         xy = message[0]
         draw_direction = check_direction(xy)
         draw_distance = int(message[1])
 
         if  draw_direction == "fwd":
-                bob.forward(draw_distance)
+                leader_turtle.forward(draw_distance)
         elif draw_direction == "bwd":
-                bob.backward(draw_distance)
+                leader_turtle.backward(draw_distance)
         elif draw_direction == "left":
-                bob.left(draw_distance)
+                leader_turtle.left(draw_distance)
         elif draw_direction == "right":
-                bob.right(draw_distance)
+                leader_turtle.right(draw_distance)
 
 def plan_draw(message):
         if len(message) != 0:
-            bob.pencolor("blue")
+            leader_turtle.pencolor("blue")
             xy = message[0]
             draw_direction = check_direction(xy)
             draw_distance = int(message[2])
             if draw_direction == "fwd":
-                bob.forward(draw_distance)
-                bob.dot("blue")
+                leader_turtle.forward(draw_distance)
+                leader_turtle.dot("blue")
             if draw_direction == "bwd":
-                bob.backward(draw_distance)
+                leader_turtle.backward(draw_distance)
             if draw_direction == "left":
-                bob.left(draw_distance)
+                leader_turtle.left(draw_distance)
             if draw_direction == "right":
-                bob.right(draw_distance)
+                leader_turtle.right(draw_distance)
 
 def self_draw(direction,distance):
-            alice.pencolor("red")
+            actual_turtle.pencolor("red")
             draw_direction = check_direction_tuple(direction)
             draw_distance = distance
             
             if draw_direction == "fwd":
-                alice.forward(draw_distance)
+                actual_turtle.forward(draw_distance)
             elif draw_direction == "bwd":
-                alice.backward(draw_distance)
+                actual_turtle.backward(draw_distance)
             elif draw_direction == "left":
-                alice.left(cmToDegree(draw_distance))
+                actual_turtle.left(cmToDegree(draw_distance))
             elif draw_direction == "right":
-                alice.right(cmToDegree(draw_distance))
+                actual_turtle.right(cmToDegree(draw_distance))
 
 def init_self_draw(message):
         if len(message) != 0:
-            alice.pencolor("red")
+            actual_turtle.pencolor("red")
             xy = message[0]
             draw_direction = check_direction(xy)
             draw_distance = int(message[1])
 
-            alice.penup()
-            alice.backward(draw_distance)
-            alice.pendown()
+            actual_turtle.penup()
+            actual_turtle.backward(draw_distance)
+            actual_turtle.pendown()
+
+def map_to_str(plan_map):
+        return "*".join(plan_map)
+
+def str_to_map(message):
+        return message.split("*")
 
 ##### Leader Mode robot will advertise untill get join from follower
 ##### then close beacon and publish control data to mac topic
         
 def leader(data,des):
+    global plan_map,start_drive
     com_iot.subscribe(my_mac)
-    
     beacon_advertise("12345678-1234-1234-1234-"+my_mac,1,1,1,1)
+    start_drive = True 
     
 #### Follower Mode tobot will scan for Beacon data then join to topic leader
 #### and send join to topic and get data from leader
     
 def follower(data,des):
     beacon_scan()
-    leader_topic = deviceData[0][24:]
-    com_iot.publish(leader_topic,"join") #### Publish join state  to leader topic
-    com_iot.subscribe(leader_topic)   ####Subscribe Leader
+    master_topic = deviceData[0][24:]
+    com_iot.publish(master_topic,"join") #### Publish join state  to leader topic
+    com_iot.subscribe(master_topic)   ####Subscribe Leader
     beacon_advertise("12345678-1234-1234-1234-"+my_mac,1,1,1,1)
     com_iot.subscribe(my_mac) #### Subscribe to own topic
     
@@ -336,23 +350,7 @@ class SpeedSensor:
                 self.hole_b += 1
 ##                print "Motor B : ", hole_b, b_count, b_total
 
-        def is_goal(self,goal_distance,avg_hole):
-                #20 hole = 22 cm
-                #1 hole = 1.1 cm
-                expect_hole =  goal_distance
-                if (avg_hole < expect_hole):
-                        return False
-                else:
-                        return True
-
-        def calculate_pwm(self,ultra_distance,goal_distance = 10000):
-            global plan_map, current_direction,previous_direction
-            ##print "goal_distance", goal_distance
-            distance = min(int(goal_distance),ultra_distance)
-            ##distance = int(goal_distance)
-
-            if (not (self.is_goal(goal_distance,self.get_avg_hole()))) and (current_direction != (0,0)):
-##                    print "avg_hole", self.get_avg_hole()
+        def calculate_speed_ref(self,distance):
                     self.rps_a = self.a_count / 20.0
                     self.rps_b = self.b_count / 20.0
                     self.a_count = 0
@@ -376,20 +374,49 @@ class SpeedSensor:
                         self.pwm_a = self.min_pwm
                     if (self.pwm_b < self.min_pwm):
                         self.pwm_b = self.min_pwm
-                    
-            elif self.is_goal(goal_distance,self.get_avg_hole()):
-                    drive_motor(0, "0 0")
-                    current_direction = (0,0)
-                    self.hole_a = 0
-                    self.hole_b = 0
-                    self.pwm_a = 0
-                    self.pwm_b = 0
-                    previous_direction = current_direction
-                    try:
-                        plan_map.getMap().popleft()
-##                        print plan_map.getMap()
-                    except IndexError:
-                        pass
+
+        def is_goal(self,goal_distance,avg_hole):
+                #20 hole = 22 cm
+                #1 hole = 1.1 cm
+                expect_hole =  goal_distance
+                if (avg_hole < expect_hole):
+                        return False
+                else:
+                        return True
+
+        def calculate_pwm(self,ultra_distance,goal_distance = 10000):
+            global plan_map, current_direction,previous_direction
+            ##print "goal_distance", goal_distance
+            ##distance = int(goal_distance)
+
+            if (current_direction == (0,1) or current_direction == (0,2)):
+                    turn_distance = degreeToCm(goal_distance)
+                    if (not (self.is_goal(turn_distance,self.get_avg_hole()*2))):
+                            self.calculate_speed_ref(goal_distance)
+                    else:
+                            self.hole_a = 0
+                            self.hole_b = 0
+                            self.pwm_a = 0
+                            self.pwm_b = 0                
+                            try:
+                                plan_map.data.popleft()
+                            except IndexError:
+                                pass
+
+            elif (current_direction == (1,0) or current_direction == (2,0)):
+                    distance = min(int(goal_distance),ultra_distance)
+                    if (not (self.is_goal(goal_distance,self.get_avg_hole()))):
+                            self.calculate_speed_ref(distance)
+                    else:
+                            self.hole_a = 0
+                            self.hole_b = 0
+                            self.pwm_a = 0
+                            self.pwm_b = 0                
+                            try:
+                                plan_map.data.popleft()
+                            except IndexError:
+                                pass
+
 
             return str(int(self.pwm_a)) + " " + str(int(self.pwm_b)) 
 
@@ -423,43 +450,73 @@ class Iot:
         print ("Now I am connected with netpie")
 
     def callback_message(self,topic,message):
-        global data
-        print message
+        global data,plan_map,my_seq,platoon_topic
         des = 0
-        if str(message) == "join":   ### Wait Message Join for approve when member join topic 
+        
+        if message[:4] == "plan":
+                message = message[4:]
+                plan_message = message.split("*")
+                plan_map.update(plan_message)
+                for item in plan_message:
+                        leader_turtle.color("blue")
+                        leader_turtle.dot("blue")
+                        draw_plan_map(item)
+                        
+        if message == "join":   ### Wait Message Join for approve when member join topic 
                 print "Someone join Topic: ", topic
                 ####### to stop Beacon advertise must restart bluetooth adapter
                 os.system("sudo service bluetooth stop" )   
                 os.system("sudo service bluetooth start" )
-                microgear.unsubscribe("/"+my_mac) ####Unsubscribe own topic to avoid complex data from more topic
-         
-        if str(message[:5]) == "Topic":    ######### Swap topic unsub leader topic and sub new leader
-                microgear.unsubscribe("/"+leader_topic) 
-                microgear.subscribe("/"+message[5:])
+                com_iot.publish(my_mac,"platoon"+my_mac)
+                com_iot.publish(my_mac,"seq"+my_seq)
 
-        if str(message) == "Leader":    ######### User Choose Mode Leader 
+                com_iot.unsubscribe(my_mac) ####Unsubscribe own topic to avoid complex data from more topic
+                com_iot.publish(my_mac,"plan"+map_to_str(plan_map.getMap()))
+
+        if message[:7] == "platoon":
+                platoon_topic = message
+                com_iot.subscribe(platoon_topic)
+
+        if message[:3] == "seq":
+                my_seq = int(message[3:])+1
+                com_iot.publish(platoon_topic,"last"+my_seq)
+
+        if message[:4] == "last":
+                last_seq = int(message[4:])
+         
+        if message[:5] == "Topic":    ######### Swap topic unsub leader topic and sub new leader
+                com_iot.unsubscribe(master_topic) 
+                com_iot.subscribe(message[5:])
+
+        if message == "Leader":    ######### User Choose Mode Leader 
                 data[0] = 1
-        if str(message) == "Follower":   ######### User Choose Mode Follower
+                my_seq = 1
+                
+                        
+        if message == "Follower":   ######### User Choose Mode Follower
                 data[0] = 0
+                my_seq = 0
+                
         
-        if str(message) == "start":    ######### User Start Platooning
+        if message == "start":    ######### User Start Platooning
                 print "go go!"
                 if data[0] == 1:
                         leader(data,des)
+                        com_iot.subscribe("platoon"+my_mac)
                 if data[0] == 0:
                         follower(data,des)
+##                        com_iot.unsubscribe("platoon"+my_mac)
         
-        if str(message) == "exit":      ######### Leader exit platoons
-                microgear.publish("/"+my_mac,"Topic:"+leader_topic)
-                microgear.unsubscribe("/"+leader_topic)
+        if message == "exit":      ######### Leader exit platoons
+                com_iot.publish(my_mac,"Topic:"+master_topic)
+                com_iot.unsubscribe(master_topic)
                 
-        
         else:     ######### Other input from free board will be destination code
                 if message in data[1]:
                         des = data[1].index(str(message))
-
-        print "Now Data is ",data
-        print "Destination",des
+##
+##        print "Now Data is ",data
+##        print "Destination",des
 
         #########################################################
 ##        master_map.update(message)
@@ -468,7 +525,7 @@ class Iot:
 ##        self.mas_total_dis = int(message.split(";")[2])
 ##
 ##        if (xy != temp_xy):
-##                bob.dot("blue")
+##                leader_turtle.dot("blue")
 ##                plan_map.update(message)
 ##                master_draw([xy,self.mas_total_dis])
 ##                self.mas_temp_dis = self.mas_total_dis
@@ -488,7 +545,7 @@ class Iot:
     def connect(self,boo):
         client.connect(boo)
 
-    def unsubsrcibe(self,topic):
+    def unsubscribe(self,topic):
         client.unsubscribe("/"+topic)
 
     def publish(self,topic, payload):
@@ -503,37 +560,38 @@ class Actual_Map(threading.Thread):
 ##                plan_map.update(str(time.time())+";"+"(1,0);0;0;"+str(d.distance))
 
         def run(self):
-                global current_direction,previous_direction
+                global current_direction,previous_direction,self_map
+                previous_distance = 0
                 try:
                         while True:
 
                             ts = time.time()
                             dt = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
                             self_map.update([str(dt),str(current_direction),str(s.get_avg_hole()),str(d.distance)])
+                            
+                            if (self_map.getLen() == 1):
+                                previous_distance = 0
+                                
+                            if (len(self_map.getMap()) > 1) and (current_direction == previous_direction):
+                                distance = int(self_map.getMap()[-1][2])
+                                self_draw(current_direction,distance - previous_distance)
+                                previous_distance = distance
 
-##                            if (self_map.getLen() == 1):
-##                                previous_distance = 0
-##                                
-##                            if (len(self_map.getMap()) > 1) and (current_direction == previous_direction):
-##                                distance = int(self_map.getMap().pop()[2])
-##                                self_draw(current_direction,distance - previous_distance)
-##                                previous_distance = distance
-                                  
-##                            elif (self_map.getLen() < 1 and leader_state == 1):
-##                                    init_self_draw([current_direction,
-##                                               d.distance-d.distance])
-##                                    
-##                            elif (self_map.getLen() < 1 and leader_state != 1):
-##                                    init_self_draw([current_direction,
-##                                               d.distance])
-##                                
+                            elif (len(self_map.getMap()) > 1) and (current_direction != previous_direction):
+                                previous_direction = current_direction
+                                previous_distance = 0
+                                distance = int(self_map.getMap()[-1][2])
+                                self_draw(current_direction,distance - previous_distance)
+                                previous_distance = distance
+                                
                             gui_timestamp.config(text = "Current Time : " + dt)
                             gui_ultra_distance.config(text = "Ultrasonic Sensor : " + str(d.distance) +" cm")
                             gui_total_distance.config(text = "Total Distance : "+str(s.get_total_avg_hole())+" cm")
                             gui_direction.config(text = "Direction : " + str(current_direction))
-
-##                            com_iot.publish(com_iot.alias,self_map.getLast())
-                            time.sleep(0.2)
+                                
+##                            print self_map.getLast()
+                            com_iot.publish(com_iot.alias,self_map.getLast())
+                            time.sleep(0.1)
                 except Queue.Empty:
                         pass
 
@@ -546,26 +604,27 @@ class Drive(threading.Thread):
         def run(self):
                 global current_direction,previous_direction,plan_map
                 while True:
-                        if not d.check_distance(d.distance,20):
-                                xy = (0,0)
-                                if (plan_map.getLen() != 0):
-                                        xy = (int(plan_map.getFirst().split(";")[1][1:2]),int(plan_map.getFirst().split(";")[1][-2:-1]))
-                                        goal_distance = int(plan_map.getFirst().split(";")[2])
-                                        current_direction = xy
-        ##                                print xy, check_direction(xy), parse_direction(check_direction(xy))
-##                                        print parse_direction(check_direction(xy)),s.calculate_pwm(d.distance,goal_distance)
-                                        drive_motor(parse_direction(check_direction(current_direction)),s.calculate_pwm(d.distance,goal_distance)) 
-                                        previous_direction = current_direction
+                        if start_drive:
+                                if not d.check_distance(d.distance,20):
+                                        xy = (0,0)
+                                        if (plan_map.getLen() != 0):
+                                                xy = (int(plan_map.getFirst().split(";")[1][1:2]),int(plan_map.getFirst().split(";")[1][-2:-1]))
+                                                goal_distance = int(plan_map.getFirst().split(";")[2])
+                                                current_direction = xy
+                                                print current_direction,s.get_avg_hole()
+                ##                                print xy, check_direction(xy), parse_direction(check_direction(xy))
+        ##                                        print parse_direction(check_direction(xy)),s.calculate_pwm(d.distance,goal_distance)
+                                                drive_motor(parse_direction(check_direction(current_direction)),s.calculate_pwm(d.distance,goal_distance)) 
+                                        else:
+                                                drive_motor(0,"0 0")
+                                                current_direction = (0,0)
+        ##                                        print parse_direction(check_direction(xy)),s.calculate_pwm(d.distance,goal_distance)
+        ##                                        drive_motor(parse_direction(check_direction(current_direction)),s.calculate_pwm(d.distance))
                                 else:
                                         drive_motor(0,"0 0")
                                         current_direction = (0,0)
-                                        previous_direction = current_direction
-##                                        print parse_direction(check_direction(xy)),s.calculate_pwm(d.distance,goal_distance)
-##                                        drive_motor(parse_direction(check_direction(current_direction)),s.calculate_pwm(d.distance))
                         else:
-                                drive_motor(0,"0 0")
-                                current_direction = (0,0)
-                                previous_direction = current_direction
+                                pass
                         time.sleep(0.01)
 
 
@@ -583,6 +642,9 @@ my_mac = "".join(output.split(":")  )[:12]
 deviceData = []
 data = [0,["Meanburi","Bangkapi","Ladkrabang"]]
 
+platoon_topic = ""
+my_seq = 0
+last_seq = 0
 ########################### Turtle GUI ############################
 
 root = tk.Tk()
@@ -602,10 +664,11 @@ canvas = tk.Canvas(frame, width=750, height=750)
 canvas.pack()
 frame.pack(fill='both', expand=True)
 
-bob = turtle.RawPen(canvas)
-alice = turtle.RawPen(canvas)
+actual_turtle = turtle.RawPen(canvas)
+actual_turtle.speed('fastest')
+leader_turtle = turtle.RawPen(canvas)
+leader_turtle.speed('fastest')
 
-root.deiconify()
 
 
 ##################### Setup Control Value #########################
@@ -627,41 +690,29 @@ reverseLeft = PWMOutputDevice(REVERSE_LEFT_PIN)
 forwardRight = PWMOutputDevice(FORWARD_RIGHT_PIN)
 reverseRight = PWMOutputDevice(REVERSE_RIGHT_PIN)
 
-speed_ref = 10
-max_speed = 20
-min_speed = 1
-
-a_count = 0
-b_count = 0
-
-max_pwm = 255
-min_pwm = 30
-pwm_a = 0
-pwm_b = 0
-
 set_distance = 20
 
 previous_direction = (0,0)
 current_direction = (0,0)
 temp_xy = (0,0)
 
+start_drive = False
 ######## start Serial
 ##ser = serial.Serial('/dev/ttyACM0',115200)
 
 ######## sensor setting
+##g = Gyro.Gyro()
 d = DistanceSensor(16,19)
 s = SpeedSensor(20,21)
 GPIO.setmode(GPIO.BCM)
 GPIO.add_event_detect(s.ir_left, GPIO.RISING, callback=s.a_counter)
 GPIO.add_event_detect(s.ir_right, GPIO.RISING, callback=s.b_counter)
 
-
-
 ###############################################################
 
 ##d.start()
 ##d.join
-
+##g.start()
 previous_message = ""
 #################  IOT setting ################################
 com_iot = Iot("O81ngNPLQoe9ppO","BQUAqXZ6wM8eiqQPYLWDnP2G9",'RobotCarPlatoon',my_mac)
@@ -669,12 +720,7 @@ com_iot.subscribe("freeboard"+my_mac)
 com_iot.connect(False)
 
 plan_map = pathmap.Map()
-setattr(plan_map,"data",command.get_plan_map())
 
-for item in plan_map.getMap():
-        bob.color("blue")
-        bob.dot("blue")
-        draw_plan_map(item)
         
 master_map = pathmap.Map()
 self_map = pathmap.Map()
