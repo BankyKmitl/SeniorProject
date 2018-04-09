@@ -18,7 +18,8 @@ from gpiozero import PWMOutputDevice
 from gpiozero import DigitalOutputDevice
 import command
 from collections import deque
-##from sensor import Gyro
+from sensor import Gyro
+import smbus
 
 ##############################################################################
 def drive_motor(direction,pwm):
@@ -272,38 +273,10 @@ def beacon_scan():
         if len(deviceData) != 0:
             break;
         
-class DistanceSensor(threading.Thread):
-        def __init__(self,TRIG,ECHO):
-            threading.Thread.__init__(self)
-            self.TRIG = TRIG
-            self.ECHO = ECHO
-            self.distance = 100
-            GPIO.setmode(GPIO.BCM)
-            GPIO.setup(self.TRIG,GPIO.OUT)
-            GPIO.setup(self.ECHO,GPIO.IN)
-            GPIO.setwarnings(False)
-
-        def run(self):
-            while (True):
-              GPIO.output(self.TRIG, True)
-              time.sleep(0.00001)
-              GPIO.output(self.TRIG, False)
-              while GPIO.input(self.ECHO)==0:
-                pulse_start = time.time()
-
-              while GPIO.input(self.ECHO)==1:
-                pulse_end = time.time()
-
-              pulse_duration = pulse_end - pulse_start
-              self.distance = int(pulse_duration * 17150)
-              if (self.distance > 400):
-                      self.distance = 400
-              time.sleep(1)
-
-        def check_distance(self,ultra_distance,set_distance):
-              if (int(ultra_distance) in [set_distance-1,set_distance,set_distance+1]):
+def check_distance(self,ultra_distance,set_distance):
+        if (int(ultra_distance) in [set_distance-1,set_distance,set_distance+1]):
                 return True
-              else:
+        else:
                 return False
 
 ##############################################################################
@@ -452,15 +425,19 @@ class Iot:
     def callback_message(self,topic,message):
         global data,plan_map,my_seq,platoon_topic
         des = 0
-        
+
+        if message[:4]
         if message[:4] == "plan":
                 message = message[4:]
                 plan_message = message.split("*")
-                plan_map.update(plan_message)
-                for item in plan_message:
-                        leader_turtle.color("blue")
-                        leader_turtle.dot("blue")
-                        draw_plan_map(item)
+                plan_map.extend(plan_message)
+                if (data[0] == 1):
+                        for item in plan_message:
+                                leader_turtle.color("blue")
+                                leader_turtle.dot("blue")
+                                draw_plan_map(item)
+                else:
+                        plan_map.extendleft("0;(1,0);"+d.get_value()+";0")
                         
         if message == "join":   ### Wait Message Join for approve when member join topic 
                 print "Someone join Topic: ", topic
@@ -471,6 +448,7 @@ class Iot:
                 com_iot.publish(my_mac,"seq"+my_seq)
 
                 com_iot.unsubscribe(my_mac) ####Unsubscribe own topic to avoid complex data from more topic
+                
                 com_iot.publish(my_mac,"plan"+map_to_str(plan_map.getMap()))
 
         if message[:7] == "platoon":
@@ -514,27 +492,9 @@ class Iot:
         else:     ######### Other input from free board will be destination code
                 if message in data[1]:
                         des = data[1].index(str(message))
-##
+
 ##        print "Now Data is ",data
 ##        print "Destination",des
-
-        #########################################################
-##        master_map.update(message)
-##        global temp_xy,previous_message
-##        xy = (int(message.split(";")[1][1:2]),int(message.split(";")[1][-2:-1]))  
-##        self.mas_total_dis = int(message.split(";")[2])
-##
-##        if (xy != temp_xy):
-##                leader_turtle.dot("blue")
-##                plan_map.update(message)
-##                master_draw([xy,self.mas_total_dis])
-##                self.mas_temp_dis = self.mas_total_dis
-##        else:
-##                master_draw([xy,self.mas_total_dis - self.mas_temp_dis])
-##                self.mas_temp_dis = self.mas_total_dis
-##
-##        temp_xy = current_direction
-        #####################################################
 
     def callback_error(msg):
         print "Error"
@@ -564,15 +524,17 @@ class Actual_Map(threading.Thread):
                 previous_distance = 0
                 try:
                         while True:
-
+                            ax,ay,az,gx,gy,gz = g.get_str_value()
+                            gui_gyro.config(text = "Ax : " + ax + " Ay : " + ay + " Az : " + az
+                                                    + "G x : " + gx + " Gy : " + gy + " Gz : " + gz)
                             ts = time.time()
                             dt = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-                            self_map.update([str(dt),str(current_direction),str(s.get_avg_hole()),str(d.distance)])
+                            self_map.append([str(dt),str(current_direction),str(s.get_avg_hole()),str(d.get_value())])
                             
                             if (self_map.getLen() == 1):
                                 previous_distance = 0
                                 
-                            if (len(self_map.getMap()) > 1) and (current_direction == previous_direction):
+                            elif (len(self_map.getMap()) > 1) and (current_direction == previous_direction):
                                 distance = int(self_map.getMap()[-1][2])
                                 self_draw(current_direction,distance - previous_distance)
                                 previous_distance = distance
@@ -588,7 +550,7 @@ class Actual_Map(threading.Thread):
                             gui_ultra_distance.config(text = "Ultrasonic Sensor : " + str(d.distance) +" cm")
                             gui_total_distance.config(text = "Total Distance : "+str(s.get_total_avg_hole())+" cm")
                             gui_direction.config(text = "Direction : " + str(current_direction))
-                                
+                            
 ##                            print self_map.getLast()
                             com_iot.publish(com_iot.alias,self_map.getLast())
                             time.sleep(0.1)
@@ -648,26 +610,53 @@ last_seq = 0
 ########################### Turtle GUI ############################
 
 root = tk.Tk()
+frame = tk.Frame()
+self_frame = tk.Frame(frame,bg = 'black')
+self_frame.pack(side = "top")
+master_frame = tk.Frame(frame,bg = 'red')
+master_frame.pack(side = "bottom")
 
-frame = tk.Frame(bg='black')
-gui_ultra_distance = tk.Label(frame, text="",fg='white',bg="black")
-gui_total_distance = tk.Label(frame, text="",fg='white',bg="black")
-gui_timestamp = tk.Label(frame, text="",fg='white',bg="black")
-gui_direction = tk.Label(frame, text="",fg='white',bg="black")
+gui_ultra_distance = tk.Label(self_frame, text="",fg='white',bg="black")
+gui_total_distance = tk.Label(self_frame, text="",fg='white',bg="black")
+gui_timestamp = tk.Label(self_frame, text="",fg='white',bg="black")
+gui_direction = tk.Label(self_frame, text="",fg='white',bg="black")
+gui_gyro = tk.Label(self_frame, text="",fg='white', bg="black")
+
+
+gui_master_gyro = tk.Label(master_frame,text="",fg='white', bg="black")
+gui_master_ultra = tk.Label(master_frame, text="",fg='white', bg="black")
+gui_master_total = tk.Label(master_frame, text="",fg='white', bg="black")
+gui_master_timestamp = tk.Label(master_frame, text="",fg='white', bg="black")
+gui_master_direction = tk.Label(master_frame, text="",fg='white', bg="black")
 
 gui_timestamp.pack()
 gui_direction.pack()
 gui_total_distance.pack()
 gui_ultra_distance.pack()
+gui_gyro.pack()
 
-canvas = tk.Canvas(frame, width=750, height=750)
+gui_master_gyro.pack()
+gui_master_ultra.pack()
+gui_master_total.pack()
+gui_master_timestamp.pack()
+gui_master_direction.pack()
+
+canvas = tk.Canvas(frame, width=650, height=400)
 canvas.pack()
-frame.pack(fill='both', expand=True)
+
+frame.pack()
 
 actual_turtle = turtle.RawPen(canvas)
 actual_turtle.speed('fastest')
 leader_turtle = turtle.RawPen(canvas)
 leader_turtle.speed('fastest')
+
+########################## Gyro ##############################
+
+
+
+
+
 
 
 
@@ -701,18 +690,18 @@ start_drive = False
 ##ser = serial.Serial('/dev/ttyACM0',115200)
 
 ######## sensor setting
-##g = Gyro.Gyro()
-d = DistanceSensor(16,19)
+d = distance.DistanceSensor(16,19)
+g = Gyro.Gyro()
 s = SpeedSensor(20,21)
 GPIO.setmode(GPIO.BCM)
 GPIO.add_event_detect(s.ir_left, GPIO.RISING, callback=s.a_counter)
 GPIO.add_event_detect(s.ir_right, GPIO.RISING, callback=s.b_counter)
 
 ###############################################################
-
-##d.start()
-##d.join
+d.start()
+d.join
 ##g.start()
+##g.join
 previous_message = ""
 #################  IOT setting ################################
 com_iot = Iot("O81ngNPLQoe9ppO","BQUAqXZ6wM8eiqQPYLWDnP2G9",'RobotCarPlatoon',my_mac)
@@ -720,8 +709,6 @@ com_iot.subscribe("freeboard"+my_mac)
 com_iot.connect(False)
 
 plan_map = pathmap.Map()
-
-        
 master_map = pathmap.Map()
 self_map = pathmap.Map()
 ac_map_thread = Actual_Map()
@@ -750,4 +737,5 @@ drive_thread.start()
 ##    else:
 ##        stopCar(s)
 root.mainloop()
+
 

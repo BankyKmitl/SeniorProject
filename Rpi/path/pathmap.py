@@ -12,9 +12,13 @@ class Map:
                 del self.data[i]
                 break
         
-    def update(self,message):
+    def extend(self,message):
         if len(message) != 0:
             self.data.extend(message)
+
+    def append(self,message):
+        if len(message) != 0:
+            self.data.append(message)
 
     def getData(self,time):
         for i in range(len(self.data)):

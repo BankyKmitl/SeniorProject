@@ -2,12 +2,12 @@
         Read Gyro and Accelerometer by Interfacing Raspberry Pi with MPU6050 using Python
 	http://www.electronicwings.com
 '''
-##from smbus import SMbus			#import SMself.bus module of I2C
+
+import smbus	#import SMself.bus module of I2C
 from time import sleep          #import
 import threading
 
 class Gyro(threading.Thread):
-    
 
     def __init__(self):
         threading.Thread.__init__(self)
@@ -23,7 +23,14 @@ class Gyro(threading.Thread):
         self.GYRO_XOUT_H  = 0x43
         self.GYRO_YOUT_H  = 0x45
         self.GYRO_ZOUT_H  = 0x47
-        self.bus = SMbus(1) 	# or self.bus = smself.bus.SMself.bus(0) for older version boards
+        self.Ax = 0
+        self.Ay = 0
+        self.Az = 0
+        self.Gx = 0
+        self.Gy = 0
+        self.Gz = 0
+        self.bus = smbus.SMBus(1)
+
         self.Device_Address = 0x68   # MPU6050 device address
         
         #write to sample rate register
@@ -41,23 +48,25 @@ class Gyro(threading.Thread):
 	#Write to interrupt enable register
 	self.bus.write_byte_data(self.Device_Address, self.INT_ENABLE, 1)
 
-    def read_raw_data(addr):
+    def read_raw_data(self,addr):
 	#Accelero and Gyro value are 16-bit
         high = self.bus.read_byte_data(self.Device_Address, addr)
         low = self.bus.read_byte_data(self.Device_Address, addr+1)
-    
         #concatenate higher and lower value
         value = ((high << 8) | low)
         
         #to get signed value from mpu6050
         if(value > 32768):
             value = value - 65536
-            return value
+        return value
 
-    def run(self):
-
-
-        print " Reading Data of Gyroscope and Accelerometer"    
+    def get_value(self):
+        return self.Ax,self.Ay,self.Az,self.Gx,self.Gy,self.Gz
+    
+    def get_str_value(self):
+        return str(self.Ax),str(self.Ay),str(self.Az),str(self.Gx),str(self.Gy),str(self.Gz)
+    
+    def run(self):   
         while True:
 	
             #Read Accelerometer raw value
@@ -71,14 +80,12 @@ class Gyro(threading.Thread):
             gyro_z = self.read_raw_data(self.GYRO_ZOUT_H)
             
             #Full scale range +/- 250 degree/C as per sensitivity scale factor
-            Ax = acc_x/16384.0
-            Ay = acc_y/16384.0
-            Az = acc_z/16384.0
+            self.Ax = float(("%.2f" % (acc_x/16384.0)))
+            self.Ay = float(("%.2f" % (acc_y/16384.0)))
+            self.Az = float(("%.2f" % (acc_z/16384.0)))
 	
-            Gx = gyro_x/131.0
-            Gy = gyro_y/131.0
-            Gz = gyro_z/131.0
-	
-
-            print Gx, Gy, Gz, Ax, Ay, Az 	
+            self.Gx = float(("%.2f" % (gyro_x/131.0)))
+            self.Gy = float(("%.2f" % (gyro_y/131.0)))
+            self.Gz = float(("%.2f" % (gyro_z/131.0)))
+            
             sleep(1)
