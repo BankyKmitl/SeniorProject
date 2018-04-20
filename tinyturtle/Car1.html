@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <canvas></canvas>
+    <title>TinyTurtle Box Example</title>
+    <script src="https://netpie.io/microgear.js"></script>
+    <script src="tiny-turtle.js"></script>
+</head>
+  <body>
+    <script>
+
+    const APPKEY    = "DAIVTaw71loiGzw";
+    const APPSECRET = "tPZRlO8LJQfkajJ7u040icywb";
+    const APPID     = "RobotCarPlatoon";
+
+    var leader_turtle = new TinyTurtle();
+    var master_turtle = new TinyTurtle();
+    var self_turtle = new TinyTurtle();
+
+    var current_direction;
+    var previous_direction = "(0,0)";
+    var current_distance;
+    var previous_distance = 0;
+
+    var m_current_direction;
+    var m_previous_direction = "(0,0)";
+    var m_current_distance;
+    var m_previous_distance = 0;
+
+    var is_master_init_draw = false;
+    var is_leader;
+
+    master_turtle.penStyle = 'blue'
+    self_turtle.penStyle = 'red'
+
+    var microgear = Microgear.create({
+        gearkey: APPKEY,
+        gearsecret: APPSECRET,
+        alias : "turtleb827eb978240"
+    });
+
+    microgear.on('message',function(topic,msg) {
+      console.log(msg)
+
+        if (msg.includes("plan")){
+          draw_leader_map(msg);
+          console.log(is_leader);
+          if ((!is_master_init_draw) && (!is_leader)){
+            draw_master_init(msg.split('*')[0]);
+          }
+        }
+        else if (msg == "1") {
+          is_leader = true;
+        }
+        else if (msg == "0") {
+          is_leader = false;
+          microgear.subscribe("/artrobot")
+        }else{
+          draw_self_map(msg);
+          draw_master_map(msg);
+        }
+    });
+
+    microgear.on('connected', function() {
+
+        microgear.subscribe("/turtleb827eb978240");
+        microgear.subscribe("/b827eb978240");
+        self_turtle.stamp();
+    });
+    microgear.connect(APPID);
+
+  function draw_leader_map(message){
+      data = message.split("*");
+      for (var i = 0; i < data.length; i++) {
+        direction = data[i].split(";")[1];
+        distance = data[i].split(";")[2];
+
+        if (direction == "(1,0)") {
+          leader_turtle.forward(distance);
+        }else if (direction == "(2,0)") {
+          leader_turtle.backward(distance);
+        }else if (direction =="(0,1)") {
+          leader_turtle.left(distance);
+        }else if (direction == "(0,2)") {
+          leader_turtle.right(distance);
+        }
+      }
+      };
+
+  function draw_master_init(message){
+          master_data = message.split(";");
+          master_turtle.forward(master_data[2]);
+          master_turtle.stamp();
+          master_init_state = true;
+        };
+
+        function draw_master_map(message){
+          m_current_direction = message.split(";")[1]
+          m_current_distance = message.split(";")[2]
+
+          if (m_current_direction == m_previous_direction) {
+              draw_map(master_turtle,m_current_direction,m_current_distance);
+          }
+          else if (current_direction != previous_direction) {
+            m_previous_distance = 0;
+              draw_map(master_turtle,m_current_direction,m_current_distance);
+
+          }
+          m_previous_direction = m_current_direction;
+        };
+
+
+    function draw_self_map(message){
+      current_direction = message.split(";")[1]
+      current_distance = message.split(";")[2]
+
+      if (current_direction == previous_direction) {
+          draw_map(self_turtle,current_direction,current_distance);
+      }
+      else if (current_direction != previous_direction) {
+        previous_distance = 0;
+          draw_map(self_turtle,current_direction,current_distance);
+
+      }
+      previous_direction = current_direction;
+    };
+
+    function draw_map(turtle,direction,current_distance){
+      distance = current_distance - previous_distance;
+      if (direction == "(1, 0)") {
+        turtle.forward(distance);
+      }else if (direction == "(2, 0)") {
+        turtle.backward(distance);
+      }else if (direction =="(0, 1)") {
+        turtle.left(cmToDegree(distance));
+      }else if (direction == "(0, 2)") {
+        turtle.right(cmToDegree(distance));
+      }
+      previous_distance = current_distance;
+    };
+
+    function cmToDegree(cm){
+      return cm * 6
+    }
+</script>
+    <p id="data"></p>
+  </body>
+</html>
