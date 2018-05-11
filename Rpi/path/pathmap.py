@@ -11,6 +11,10 @@ class Map:
             if (self.data[i][2] == time):
                 del self.data[i]
                 break
+            
+    def extendleft(self,message):
+        if len(message) != 0:
+            self.data.extendleft(message)
         
     def extend(self,message):
         if len(message) != 0:
@@ -33,7 +37,14 @@ class Map:
             return self.data[0]
         except IndexError:
             pass
-    
+
+    def getFirst_str(self):
+        try:
+            first = ";".join(self.data[0])
+            return first
+        except IndexError:
+            pass
+        
     def getMap(self):
         return self.data
 
