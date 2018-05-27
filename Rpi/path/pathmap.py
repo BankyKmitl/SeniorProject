@@ -52,5 +52,6 @@ class Map:
         last = ";".join(self.data[-1])
         return last
     
-            
+    def getLastDistance(self):
+        return self.getLast().split(";")[2]
             
