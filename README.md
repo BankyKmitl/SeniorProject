@@ -45,6 +45,13 @@ Source code อยู่ในโฟลเดอร์ tinyturtle
 
 ** เนื่องจาก Rpi3 ใช้ไฟ 3.3 v แต่ HC-020K และ HC-SR04 ใช้ไฟ 5v จึงต้องใช้ [Logic Level Converter Module](https://www.arduinoall.com/product/259/logic-level-converter-module) แปลงไฟก่อนค่อยต่อเข้ากับ Rpi
 
+## Bug / Unfinished Task or Feature / Advice
+- ถ้า Robot-Car ถอยหลัง ควรจะลบระยะทางลง ไม่ใช่เพิ่มขึ้น
+- ย้าย class SpeedSensor และ Iot ในไฟล์ main.py ไปเป็น module
+- code ส่วนควบคุม Robot-car ที่ต้อง Tuning คือ เนื่องจากประกอบรถขึ้นเอง จึงมีความไม่เป็นมาตรฐานที่เหมือนกันของรถทุกคัน จึงต้องมีการปรับแก้ code ให้คุมรถแต่ละคันให้ได้เหมาะสม คำแนะนำคือ อาจต้องเปลี่ยนไปใช้ Robot-car ที่สำเร็จรูป มีมาตรฐาน
+- Ultrasonic Sensor ยังจับระยะได้ไม่ดีพอ อาจต้องเปลี่ยนไปใช้ sensor รูปแบบอื่น
+- ควรเขียนให้รันไฟล์ main.py แบบเป็น script คือให้ autorun ตั้งแต่เปิด Rpi
+- การเลือกใช้ NETPIE เป็น broker มีข้อจำกัดเรื่อง จำนวนข้อมูลที่ส่งได้ (20 message / sec) อาจทำให้ได้ข้อมูลที่ไม่ realtime มากพอ
 
 ***
 #### If you have any question or any problem. Please Contact me
