@@ -3,7 +3,7 @@ Version -> Alpha 0.1
 
 more information in [our project report](https://github.com/BankyKmitl/SeniorProject/blob/master/57070045_57070148_report.pdf) 
 ## Source Code
-
+** หากไม่ได้ทำการ mount image ไฟล์ ลงใน Sd Card ให้ทำตามวิธีการด้านล่าง
 #### Raspberry Pi / Robot-Car (Python 2.7)
 ใช้ [Raspbian OS](https://www.raspberrypi.org/downloads/raspbian/) ตัวเต็ม แล้ว Clone Repository นี้ลงใน Raspberry Pi
 
