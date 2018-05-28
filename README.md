@@ -1,7 +1,7 @@
 # Autonomous Robot-Car Platoons System 
 Version -> Alpha 0.1
 
-more information in (our project report)[https://github.com/BankyKmitl/SeniorProject/blob/master/57070045_57070148_report.pdf] 
+more information in [our project report](https://github.com/BankyKmitl/SeniorProject/blob/master/57070045_57070148_report.pdf) 
 ## Source Code
 
 #### Raspberry Pi / Robot-Car (Python 2.7)
