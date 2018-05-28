@@ -1,0 +1,272 @@
+{
+ "version": "application/octet-stream",
+ "allow_edit": true,
+ "plugins": [],
+ "panes": [
+  {
+   "title": "My Car",
+   "width": 1,
+   "row": {
+    "1": 1,
+    "2": 1,
+    "3": 1,
+    "4": 1
+   },
+   "col": {
+    "1": 1,
+    "2": 1,
+    "3": 2,
+    "4": 3
+   },
+   "col_width": 1,
+   "widgets": [
+    {
+     "type": "text_widget",
+     "settings": {
+      "title": "Time Stamp",
+      "size": "regular",
+      "value": "datasources[\"Car1\"][\"/RobotCarPlatoon/b827eb978240\"].split(\";\")[0]",
+      "animate": false
+     }
+    },
+    {
+     "type": "text_widget",
+     "settings": {
+      "title": "Direction",
+      "size": "regular",
+      "value": "datasources[\"Car1\"][\"/RobotCarPlatoon/b827eb978240\"].split(\";\")[1]",
+      "animate": false
+     }
+    },
+    {
+     "type": "text_widget",
+     "settings": {
+      "title": "Total Distance",
+      "size": "regular",
+      "value": "datasources[\"Car1\"][\"/RobotCarPlatoon/b827eb978240\"].split(\";\")[2]",
+      "animate": false
+     }
+    },
+    {
+     "type": "text_widget",
+     "settings": {
+      "title": "Ultrasonic",
+      "size": "regular",
+      "value": "datasources[\"Car1\"][\"/RobotCarPlatoon/b827eb978240\"].split(\";\")[3]",
+      "animate": false
+     }
+    },
+    {
+     "type": "text_widget",
+     "settings": {
+      "title": "Gyro",
+      "size": "regular",
+      "value": "var message = datasources[\"Car1\"][\"/RobotCarPlatoon/b827eb978240\"].split(\";\");\nreturn \"Ax: \"+message[4]+\"    Gx: \"+message[7];",
+      "animate": true
+     }
+    },
+    {
+     "type": "text_widget",
+     "settings": {
+      "size": "regular",
+      "value": "var message = datasources[\"Car1\"][\"/RobotCarPlatoon/b827eb978240\"].split(\";\");\nreturn \"Ay: \"+message[5]+\"    Gy: \"+message[8];",
+      "animate": true
+     }
+    },
+    {
+     "type": "text_widget",
+     "settings": {
+      "size": "regular",
+      "value": "var message = datasources[\"Car1\"][\"/RobotCarPlatoon/b827eb978240\"].split(\";\");\nreturn \"Az: \"+message[6]+\"    Gz: \"+message[9];",
+      "animate": true
+     }
+    }
+   ]
+  },
+  {
+   "width": 1,
+   "row": {
+    "1": 17,
+    "2": 11,
+    "3": 1,
+    "4": 7
+   },
+   "col": {
+    "1": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4
+   },
+   "col_width": 1,
+   "widgets": [
+    {
+     "type": "Toggle",
+     "settings": {
+      "state": "",
+      "ontext": "Leader",
+      "offtext": "Follower",
+      "onaction": "microgear[\"Car1\"].publish(\"/freeboardb827eb978240\",\"Leader\")",
+      "offaction": "microgear[\"Car1\"].publish(\"/freeboardb827eb978240\",\"Follower\")",
+      "onCreatedAction": "microgear[\"Car1\"].publish(\"/freeboardb827eb978240\",\"Follower\")"
+     }
+    },
+    {
+     "type": "Button",
+     "settings": {
+      "caption": "Set Mode",
+      "text": "",
+      "color": "blue",
+      "onClick": "microgear[\"Car1\"].publish(\"/freeboardb827eb978240\",\"start\")"
+     }
+    }
+   ]
+  },
+  {
+   "title": "Master Car",
+   "width": 1,
+   "row": {
+    "1": 33,
+    "2": 17,
+    "3": 1,
+    "4": 60
+   },
+   "col": {
+    "1": 1,
+    "2": 1,
+    "3": 1,
+    "4": -7
+   },
+   "col_width": "1",
+   "widgets": [
+    {
+     "type": "text_widget",
+     "settings": {
+      "title": "Time Stamp",
+      "size": "regular",
+      "value": "datasources[\"Car1\"][\"/RobotCarPlatoon/artrobot\"].split(\";\")[0]",
+      "animate": true
+     }
+    },
+    {
+     "type": "text_widget",
+     "settings": {
+      "title": "Direction",
+      "size": "regular",
+      "value": "datasources[\"Car1\"][\"/RobotCarPlatoon/artrobot\"].split(\";\")[1]",
+      "animate": false
+     }
+    },
+    {
+     "type": "text_widget",
+     "settings": {
+      "title": "Total Distance",
+      "size": "regular",
+      "value": "datasources[\"Car1\"][\"/RobotCarPlatoon/artrobot\"].split(\";\")[2]",
+      "animate": false
+     }
+    },
+    {
+     "type": "text_widget",
+     "settings": {
+      "title": "Ultrasonic",
+      "size": "regular",
+      "value": "datasources[\"Car1\"][\"/RobotCarPlatoon/artrobot\"].split(\";\")[3]",
+      "animate": false
+     }
+    },
+    {
+     "type": "text_widget",
+     "settings": {
+      "title": "Gyro",
+      "size": "regular",
+      "value": "var message = datasources[\"Car1\"][\"/RobotCarPlatoon/artrobot\"].split(\";\");\nreturn \"Ax: \"+message[4]+\" Gx: \"+message[7];",
+      "animate": true
+     }
+    },
+    {
+     "type": "text_widget",
+     "settings": {
+      "size": "regular",
+      "value": "var message = datasources[\"Car1\"][\"/RobotCarPlatoon/artrobot\"].split(\";\");\nreturn \"Ay: \"+message[5]+\" Gy: \"+message[8];",
+      "animate": true
+     }
+    },
+    {
+     "type": "text_widget",
+     "settings": {
+      "size": "regular",
+      "value": "var message = datasources[\"Car1\"][\"/RobotCarPlatoon/artrobot\"].split(\";\");\nreturn \"Az: \"+message[6]+\" Gz: \"+message[9];",
+      "animate": true
+     }
+    }
+   ]
+  },
+  {
+   "width": 1,
+   "row": {
+    "1": 27,
+    "2": 5,
+    "3": 7,
+    "4": 1
+   },
+   "col": {
+    "1": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4
+   },
+   "col_width": 1,
+   "widgets": [
+    {
+     "type": "html",
+     "settings": {
+      "html": "<style>\ntextarea {overflow-y: scroll;}\n</style>\n<textarea rows=\"4\" cols=\"50\" name = \"command\" ></textarea>\n<button id = sendCommand; onclick = send_command() >Send Command</button>\n\n\n<script>\n    \nvar data = [];\ntime = (new Date()).getTime() / 1000;\n\n\nfunction send_command(){\n    \n    command = document.getElementsByName('command')[0].value;\n    \n    newCommand = command.split(\"\\\\n\");\n    \n    for(i = 0;i < newCommand.length;i++){\n        if ((newCommand[i].split(\" \"))[0] == \"fd\"){\n            data.push(time+\";(1,0);\"+newCommand[i].split(\" \")[1]+\";0\");\n        }\n        if ((newCommand[i].split(\" \"))[0] == \"bk\"){\n            data.push(time+\";(2,0);\"+newCommand[i].split(\" \")[1]+\";0\");\n        }\n        if ((newCommand[i].split(\" \"))[0] == \"lt\"){\n            data.push(time+\";(0,1);\"+newCommand[i].split(\" \")[1]+\";0\"); \n        }\n        if ((newCommand[i].split(\" \"))[0] == \"rt\"){\n            data.push(time+\";(0,2);\"+newCommand[i].split(\" \")[1]+\";0\"); \n        }\n    \t\n\t}\n \t\n    microgear[\"Car1\"].publish(\"/freeboardb827eb978240\",\"com\"+data.join(\"*\"));\n    command = \"\";\n    newCommnad = [];\n    data = [];\n    \n}\n\nfunction degreeToCm(degree){\n    return Math.floor(degree / 16.37) ;\n}\n\n</script>\n",
+      "height": 2
+     }
+    }
+   ]
+  },
+  {
+   "width": 1,
+   "row": {
+    "1": 23,
+    "2": 1,
+    "3": 13,
+    "4": 13
+   },
+   "col": {
+    "1": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4
+   },
+   "col_width": 1,
+   "widgets": [
+    {
+     "type": "Button",
+     "settings": {
+      "caption": "Launch",
+      "text": "",
+      "color": "yellow",
+      "onClick": "microgear[\"Car1\"].publish(\"/platoon\",\"launch\")"
+     }
+    }
+   ]
+  }
+ ],
+ "datasources": [
+  {
+   "name": "Car1",
+   "type": "netpie_microgear",
+   "settings": {
+    "name": "Car1",
+    "appid": "RobotCarPlatoon",
+    "key": "ufnF70I9Md88lCE",
+    "secret": "z5iyAJ7IyodRlhlWM5Vl8ysIu",
+    "topics": "/#"
+   }
+  }
+ ],
+ "columns": 3,
+ "theme": "default"
+}
