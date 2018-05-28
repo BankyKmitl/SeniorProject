@@ -10,8 +10,8 @@
   <body>
     <script>
 
-    const APPKEY    = "6wf9cL4ejsFYshj";
-    const APPSECRET = "eOesWg2zf4JL1CbiogDRXKcZv";
+    const APPKEY    = "OQI0K6AsQ73Izrq";
+    const APPSECRET = "XJKHdNjpSEmf0hhQSD6LA1WFl";
     const APPID     = "RobotCarPlatoon";
 
     var leader_turtle = new TinyTurtle();
@@ -37,22 +37,22 @@
     var microgear = Microgear.create({
         gearkey: APPKEY,
         gearsecret: APPSECRET,
-        alias : "turtleb827eb87edf0"
+        alias : "turtleb827ebf873cc"
     });
 
     microgear.on('message',function(topic,msg) {
       console.log(topic+" "+ msg);
-        if (topic == "/RobotCarPlatoon/robotcarplatoons1"){
+        if (topic == "/RobotCarPlatoon/robotmodeplatoons"){
           master_turtle.de_stamp();
           draw_master_map(msg);
           master_turtle.stamp();
          }
-        else if (topic == "/RobotCarPlatoon/b827eb87edf0") {
+        else if (topic == "/RobotCarPlatoon/b827ebf873cc") {
           self_turtle.de_stamp();
           draw_self_map(msg);
           self_turtle.stamp();
         }
-        else if (msg.includes("plan") && topic == "/RobotCarPlatoon/turtleb827eb87edf0"){
+        else if (msg.includes("plan") && topic == "/RobotCarPlatoon/turtleb827ebf873cc"){
           draw_leader_map(msg);
 
 
@@ -65,17 +65,15 @@
         }
         else if (msg == "0") {
           is_leader = false;
-          microgear.subscribe("/robotcarplatoons1")
+          microgear.subscribe("/robotmodeplatoons")
         }
-
-
 
     });
 
     microgear.on('connected', function() {
 
-        microgear.subscribe("/turtleb827eb87edf0");
-        microgear.subscribe("/b827eb87edf0");
+        microgear.subscribe("/turtleb827ebf873cc");
+        microgear.subscribe("/b827ebf873cc");
         self_turtle.stamp();
     });
 

@@ -73,6 +73,20 @@ function TinyTurtle(canvas) {
     ctx.restore();
     return self;
   };
+
+  self.de_stamp = function(size) {
+    var ctx = canvas.getContext('2d');
+    ctx.save();
+    ctx.strokeStyle = ctx.fillStyle = 'white';
+    ctx.lineWidth = 0;
+    ctx.translate(position.x, position.y);
+    ctx.rotate(-radians(rotation));
+    triangle(ctx, size || 10, (size || 10) * 1.5);
+    isPenDown ? ctx.fill() : ctx.stroke();
+    ctx.restore();
+    return self;
+
+  }
   self.left = self.lt = function(deg) { rotate(deg); return self; };
   self.right = self.rt = function(deg) { rotate(-deg); return self; };
 
