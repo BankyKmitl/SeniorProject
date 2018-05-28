@@ -7,7 +7,7 @@ import smbus	#import SMself.bus module of I2C
 from time import sleep          #import
 import threading
 
-class Gyro():
+class gyro():
 
     def __init__(self):
         #some MPU6050 Registers and their Address
